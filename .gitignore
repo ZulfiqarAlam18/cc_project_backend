@@ -129,7 +129,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# ML/AI specific
+# ML/AI specific - IMPORTANT: Commenting out .keras to keep model files for deployment
 *.pkl
 *.pickle
 *.h5
@@ -137,6 +137,7 @@ dmypy.json
 *.onnx
 *.pb
 *.tflite
+# *.keras  # Keep .keras files for deployment
 
 # IDE specific
 .vscode/
@@ -159,3 +160,16 @@ Thumbs.db
 *.temp
 *.bak
 *.backup
+
+# Application logs (but not system logs needed for deployment)
+app.log
+*.log
+
+# IMPORTANT: DO NOT IGNORE THESE DEPLOYMENT-CRITICAL FILES:
+# main.py - Main application file
+# requirements.txt - Python dependencies
+# Procfile - Render deployment configuration
+# runtime.txt - Python version specification (if created)
+# remedies.json - Application data
+# models/ - ML model files (*.keras, class_names.json)
+# start_backend.sh - Startup script
