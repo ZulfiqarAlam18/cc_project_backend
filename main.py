@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -84,11 +83,9 @@ def preprocess_image(image_file) -> np.ndarray:
         # Read image
         image = Image.open(io.BytesIO(image_file))
 
-
         # Convert to RGB (3 channels)
         if image.mode != 'RGB':
             image = image.convert('RGB')
-
 
         # Resize to model input size (224x224)
         image = image.resize((224, 224))
@@ -157,42 +154,12 @@ async def detect_disease(
 ):
     """
     Disease detection endpoint - uses real trained model
-    
-    Receives:
-    - image: Uploaded image file
-    - crop_type: (Optional) For compatibility with frontend
-    
-    Returns:
-    - disease prediction with confidence from trained model
     """
     
-    # Validate image - check both content type and file extension
-    valid_content_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
     valid_extensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
     
-    # Check content type first
-    is_valid_content_type = (
-        image.content_type and 
-        any(image.content_type.lower().startswith(ct) for ct in ["image/", "image/jpeg", "image/png"])
-    )
-    
-    # Check file extension as backup
-    is_valid_extension = (
-        image.filename and 
-        any(image.filename.lower().endswith(ext) for ext in valid_extensions)
-    )
-    
-    # Print debug info
     print(f"📋 Received file: {image.filename}")
     print(f"📝 Content-Type: {image.content_type}")
-    print(f"✓ Valid content type: {is_valid_content_type}")
-    print(f"✓ Valid extension: {is_valid_extension}")
-    
-    if not (is_valid_content_type or is_valid_extension):
-        raise HTTPException(
-            status_code=400,
-            detail=f"File must be an image. Received content-type: {image.content_type}, filename: {image.filename}"
-        )
     
     try:
         # Read image file
@@ -210,7 +177,6 @@ async def detect_disease(
             detail=f"Error processing image: {str(e)}"
         )
     
-    # Return response matching your Flutter app needs
     return {
         "success": True,
         "crop_type": crop_type if crop_type else "Unknown",
@@ -225,27 +191,17 @@ async def detect_disease(
     }
 
 def get_disease_description(disease: str) -> str:
-    """Get disease description from remedies.json"""
-    # Check if we have data for this specific disease
     if disease in remedies_data:
         return remedies_data[disease].get("description", "No description available.")
-    
-    # If healthy, return a positive message
     if "healthy" in disease.lower():
         return "Your plant appears to be healthy with no signs of disease."
-    
-    # Default message if no specific data found
     return f"Disease detected: {disease}. Please consult agricultural resources for more information."
 
 def get_recommendations(disease: str) -> list:
-    """Get treatment recommendations from remedies.json"""
-    # Check if we have remedies data for this specific disease
     if disease in remedies_data:
         remedies = remedies_data[disease].get("remedies", [])
         if remedies:
             return remedies
-    
-    # If the plant is healthy
     if "healthy" in disease.lower():
         return [
             "Your plant appears healthy!",
@@ -254,8 +210,6 @@ def get_recommendations(disease: str) -> list:
             "Keep monitoring for any changes",
             "Ensure adequate sunlight and nutrients"
         ]
-    
-    # Generic fallback recommendations if no specific data found
     return [
         f"Disease detected: {disease}",
         "Consult with a local agricultural extension office for specific treatment",
@@ -267,7 +221,6 @@ def get_recommendations(disease: str) -> list:
 
 @app.get("/classes")
 async def get_classes():
-    """Get list of all disease classes the model can predict"""
     if not model_loaded:
         raise HTTPException(
             status_code=503,
@@ -280,4 +233,6 @@ async def get_classes():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))  # ✅ important for Render
+    print(f"🚀 Starting server on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
