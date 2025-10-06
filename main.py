@@ -8,6 +8,18 @@ import io
 from datetime import datetime
 from typing import Dict, Optional
 import json
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('app.log') if os.environ.get('ENV') != 'production' else logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 # Create FastAPI app
@@ -36,7 +48,7 @@ def load_trained_model():
     try:
         # Load trained model files - using relative paths
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(base_dir, "models", "PlantsDiseaseDetection_Model (1).keras")
+        model_path = os.path.join(base_dir, "models", "model.keras")
         encoder_path = os.path.join(base_dir, "models", "class_names.json")
         remedies_path = os.path.join(base_dir, "remedies.json")
         
@@ -48,30 +60,30 @@ def load_trained_model():
         
         # Load the model
         loaded_model = tf.keras.models.load_model(model_path, compile=False)
-        print(f"✅ Model loaded successfully")
-        print(f"   Input shape: {loaded_model.input_shape}")
+        logger.info("✅ Model loaded successfully")
+        logger.info(f"   Input shape: {loaded_model.input_shape}")
         
         # Load class names
         with open(encoder_path, "r") as f:
             class_names = json.load(f)
-        print(f"✅ Loaded {len(class_names)} class names")
-        print(f"   Classes: {class_names[:5]}..." if len(class_names) > 5 else f"   Classes: {class_names}")
+        logger.info(f"✅ Loaded {len(class_names)} class names")
+        logger.info(f"   Classes: {class_names[:5]}..." if len(class_names) > 5 else f"   Classes: {class_names}")
         
         # Load remedies data
         if os.path.exists(remedies_path):
             with open(remedies_path, "r") as f:
                 remedies_data = json.load(f)
-            print(f"✅ Loaded remedies for {len(remedies_data)} disease classes")
+            logger.info(f"✅ Loaded remedies for {len(remedies_data)} disease classes")
         else:
-            print(f"⚠️  Remedies file not found at: {remedies_path}")
+            logger.warning(f"⚠️  Remedies file not found at: {remedies_path}")
             remedies_data = {}
         
         model_loaded = True
-        print("🤖 Real-time ML model ready for predictions\n")
+        logger.info("🤖 Real-time ML model ready for predictions")
             
     except Exception as e:
-        print(f"❌ CRITICAL ERROR: Failed to load model: {e}")
-        print("⚠️  The API will not work without the trained model!")
+        logger.error(f"❌ CRITICAL ERROR: Failed to load model: {e}")
+        logger.error("⚠️  The API will not work without the trained model!")
         model_loaded = False
         raise RuntimeError(f"Failed to load required model files: {e}")
 
@@ -92,7 +104,7 @@ def preprocess_image(image_file) -> np.ndarray:
 
         # Convert to numpy array
         image_array = np.array(image)
-        print("Image shape before prediction:", image_array.shape)
+        logger.debug("Image shape before prediction:", image_array.shape)
 
         # Add batch dimension
         image_array = np.expand_dims(image_array, axis=0)
@@ -219,6 +231,16 @@ def get_recommendations(disease: str) -> list:
         "Consider consulting a plant pathologist for detailed diagnosis"
     ]
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "model_loaded": model_loaded,
+        "service": "Cropix Disease Detection API"
+    }
+
 @app.get("/classes")
 async def get_classes():
     if not model_loaded:
@@ -234,5 +256,5 @@ async def get_classes():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))  # ✅ important for Render
-    print(f"🚀 Starting server on port {port}")
+    logger.info(f"🚀 Starting server on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
