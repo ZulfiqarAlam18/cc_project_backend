@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String            @id @default(uuid())
+  name             String
+  email            String            @unique
+  phone            String            @unique
+  password         String
+  role             UserRole          @default(PARENT)
+  cnic             String?
+  address          String?
+  profileImage     String?
+  isVerified       Boolean           @default(false)
+  isActive         Boolean           @default(true)
+  lastLogin        DateTime?
+  fcmToken         String?
+  latitude         Float?
+  longitude        Float?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  finderReports    FinderReport[]
+  notifications    Notification[]
+  otpVerifications OtpVerification[]
+  parentReports    ParentReport[]
+  refreshTokens    RefreshToken[]
+
+  @@map("users")
+}
+
+model OtpVerification {
+  id        String   @id @default(uuid())
+  userId    String
+  otp       String
+  type      String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_verifications")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model ParentReport {
+  id                String        @id @default(uuid())
+  childName         String
+  fatherName        String
+  placeLost         String?
+  gender            Gender
+  lostTime          DateTime
+  additionalDetails String?
+  contactNumber     String
+  emergency         String
+  status            CaseStatus    @default(ACTIVE)
+  latitude          Float?        @default(0.0)
+  longitude         Float?        @default(0.0)
+  locationName      String?
+  parentId          String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  images            CaseImage[]
+  matchesAsParent   MatchedCase[] @relation("ParentMatches")
+  parent            User          @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@map("parent_reports")
+}
+
+model FinderReport {
+  id                String        @id @default(uuid())
+  childName         String?
+  fatherName        String?
+  placeFound        String?
+  gender            Gender?
+  foundTime         DateTime      @default(now())
+  additionalDetails String?
+  contactNumber     String?
+  emergency         String?
+  status            CaseStatus    @default(ACTIVE)
+  latitude          Float?        @default(0.0)
+  longitude         Float?        @default(0.0)
+  locationName      String?
+  finderId          String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  images            CaseImage[]
+  finder            User          @relation(fields: [finderId], references: [id], onDelete: Cascade)
+  matchesAsFinder   MatchedCase[] @relation("FinderMatches")
+
+  @@map("finder_reports")
+}
+
+model CaseImage {
+  id              String        @id @default(uuid())
+  imageUrl        String
+  thumbnailUrl    String?
+  embeddingVector Float[]
+  fileName        String?
+  fileSize        Int?
+  mimeType        String?
+  createdAt       DateTime      @default(now())
+  
+  // Separate foreign keys for each report type
+  parentReportId  String?
+  finderReportId  String?
+  
+  parentReport    ParentReport? @relation(fields: [parentReportId], references: [id], onDelete: Cascade)
+  finderReport    FinderReport? @relation(fields: [finderReportId], references: [id], onDelete: Cascade)
+
+  @@map("case_images")
+}
+
+model MatchedCase {
+  id               String         @id @default(uuid())
+  parentCaseId     String
+  finderCaseId     String
+  status           MatchStatus    @default(PENDING)
+  matchConfidence  Float
+  notificationSent Boolean        @default(false)
+  verifiedBy       String?
+  verifiedAt       DateTime?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  finderCase       FinderReport   @relation("FinderMatches", fields: [finderCaseId], references: [id], onDelete: Cascade)
+  parentCase       ParentReport   @relation("ParentMatches", fields: [parentCaseId], references: [id], onDelete: Cascade)
+  notifications    Notification[]
+
+  @@unique([parentCaseId, finderCaseId])
+  @@map("matched_cases")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String?
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean          @default(false)
+  matchId   String?
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+  match     MatchedCase?     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user      User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model LocationShare {
+  id        String   @id @default(uuid())
+  matchId   String
+  userId    String
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  createdAt DateTime @default(now())
+
+  @@map("location_shares")
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String
+  message   String
+  data      Json?
+  source    String?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@map("system_logs")
+}
+
+enum UserRole {
+  PARENT
+  FINDER
+  ADMIN
+  POLICE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum ChildState {
+  ALIVE
+  INJURED
+  DEAD
+  UNKNOWN
+}
+
+enum MatchStatus {
+  PENDING
+  MATCHED
+  CLOSED
+  REJECTED
+}
+
+enum NotificationType {
+  MATCH_FOUND
+  CASE_UPDATE
+  SYSTEM_ALERT
+  LOCATION_SHARE
+  ADMIN_ALERT
+  EMERGENCY_ALERT
+}
+
+enum CaseStatus {
+  ACTIVE
+  CLOSED
+  RESOLVED
+  CANCELLED
+}
