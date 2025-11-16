@@ -2,12 +2,12 @@
 
 ## ⚡ Quick Setup (5 minutes)
 
-### Step 1: Install Python Dependencies
+### Step 1: Install Python Dependencies (faceChecker1)
 ```bash
-cd E:\latest\Ali_Raza_Backup\Work\Fyp\Backend\face-matching-service
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+cd "E:\latest\Ali_Raza_Backup\Work\Fyp\8th Semester\faceChecker1"
+python -m venv .venv
+.venv\Scripts\activate
+pip install flask face-recognition flask-cors
 ```
 
 ### Step 2: Start Both Services
@@ -18,10 +18,10 @@ E:\latest\Ali_Raza_Backup\Work\Fyp\Backend\start-services.bat
 
 **Option B - Manual:**
 ```bash
-# Terminal 1 - Python Service
-cd E:\latest\Ali_Raza_Backup\Work\Fyp\Backend\face-matching-service
-venv\Scripts\activate
-python face_match_api.py
+# Terminal 1 - faceChecker1 Service
+cd "E:\latest\Ali_Raza_Backup\Work\Fyp\8th Semester\faceChecker1"
+.venv\Scripts\activate
+python face_match_server.py
 
 # Terminal 2 - Node.js Backend  
 cd E:\latest\Ali_Raza_Backup\Work\Fyp\Backend\locate-lost-backend

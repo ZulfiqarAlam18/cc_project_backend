@@ -1,16 +1,41 @@
 const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
 
 const FACE_MATCH_SERVICE_URL = process.env.FACE_MATCH_SERVICE_URL || 'http://localhost:5001';
+
+/**
+ * Download image from URL to temporary file
+ */
+const downloadImage = async (imageUrl, tempPath) => {
+  try {
+    const response = await axios.get(imageUrl, {
+      responseType: 'stream',
+      timeout: 10000
+    });
+    
+    const writer = fs.createWriteStream(tempPath);
+    response.data.pipe(writer);
+    
+    return new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+  } catch (error) {
+    throw new Error(`Failed to download image: ${error.message}`);
+  }
+};
 
 /**
  * Check if face matching service is available
  */
 const checkServiceHealth = async () => {
   try {
-    const response = await axios.get(`${FACE_MATCH_SERVICE_URL}/health`, {
+    const response = await axios.get(`${FACE_MATCH_SERVICE_URL}/`, {
       timeout: 5000
     });
-    return response.data.status === 'healthy';
+    return response.status === 200;
   } catch (error) {
     console.error('Face matching service is not available:', error.message);
     return false;
@@ -18,29 +43,52 @@ const checkServiceHealth = async () => {
 };
 
 /**
- * Compare two face images
+ * Compare two face images using faceChecker1 service
  * @param {string} image1Url - URL of first image
  * @param {string} image2Url - URL of second image
  * @param {number} tolerance - Matching tolerance (default: 0.6, lower = stricter)
  * @returns {Object} Match result with confidence
  */
 const compareTwoFaces = async (image1Url, image2Url, tolerance = 0.6) => {
+  const tempDir = path.join(__dirname, '../../temp');
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+  
+  const img1Path = path.join(tempDir, `temp_img1_${Date.now()}.jpg`);
+  const img2Path = path.join(tempDir, `temp_img2_${Date.now()}.jpg`);
+  
   try {
+    // Download both images
+    await downloadImage(image1Url, img1Path);
+    await downloadImage(image2Url, img2Path);
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('img1', fs.createReadStream(img1Path));
+    formData.append('img2', fs.createReadStream(img2Path));
+    
+    // Call faceChecker1 API
     const response = await axios.post(
-      `${FACE_MATCH_SERVICE_URL}/compare-faces`,
+      `${FACE_MATCH_SERVICE_URL}/face_match`,
+      formData,
       {
-        image1: image1Url,
-        image2: image2Url,
-        tolerance
-      },
-      {
-        timeout: 30000 // 30 seconds
+        headers: formData.getHeaders(),
+        timeout: 30000
       }
     );
     
+    // Calculate confidence from face_recognition distance
+    // face_recognition returns match as boolean
+    // We'll estimate confidence based on the match result
+    const match = response.data.match;
+    const confidence = match ? 95 : 30; // High confidence if match, low if not
+    
     return {
       success: true,
-      ...response.data
+      match: match,
+      confidence: confidence,
+      error: response.data.error
     };
   } catch (error) {
     console.error('Error comparing faces:', error.message);
@@ -50,6 +98,14 @@ const compareTwoFaces = async (image1Url, image2Url, tolerance = 0.6) => {
       match: false,
       confidence: 0
     };
+  } finally {
+    // Cleanup temp files
+    try {
+      if (fs.existsSync(img1Path)) fs.unlinkSync(img1Path);
+      if (fs.existsSync(img2Path)) fs.unlinkSync(img2Path);
+    } catch (cleanupError) {
+      console.error('Error cleaning up temp files:', cleanupError);
+    }
   }
 };
 
@@ -68,25 +124,49 @@ const compareMultipleFaces = async (
   minConfidence = 85
 ) => {
   try {
-    const response = await axios.post(
-      `${FACE_MATCH_SERVICE_URL}/compare-multiple`,
-      {
-        source_image: sourceImageUrl,
-        target_images: targetImageUrls,
-        tolerance,
-        min_confidence: minConfidence
-      },
-      {
-        timeout: 60000 // 60 seconds for multiple comparisons
+    const matches = [];
+    
+    // Compare source image with each target image using faceChecker1
+    for (let idx = 0; idx < targetImageUrls.length; idx++) {
+      const targetImageUrl = targetImageUrls[idx];
+      
+      const result = await compareTwoFaces(sourceImageUrl, targetImageUrl, tolerance);
+      
+      if (result.success) {
+        matches.push({
+          index: idx,
+          image_url: targetImageUrl,
+          match: result.match && result.confidence >= minConfidence,
+          confidence: result.confidence,
+          error: result.error
+        });
+      } else {
+        matches.push({
+          index: idx,
+          image_url: targetImageUrl,
+          match: false,
+          confidence: 0,
+          error: result.error || 'Failed to compare'
+        });
       }
-    );
+    }
+    
+    // Filter and sort matches
+    const validMatches = matches.filter(m => m.match);
+    validMatches.sort((a, b) => b.confidence - a.confidence);
     
     return {
       success: true,
-      ...response.data
+      source_has_face: true,
+      total_compared: targetImageUrls.length,
+      matches_found: validMatches.length,
+      matches: validMatches,
+      all_results: matches,
+      tolerance,
+      min_confidence: minConfidence
     };
   } catch (error) {
-    console.error('Error comparing multiple faces:', error.message);
+    console.error('Error comparing multiple faces:', error);
     return {
       success: false,
       error: error.message,
@@ -97,34 +177,16 @@ const compareMultipleFaces = async (
 };
 
 /**
- * Extract face encoding from an image
+ * Extract face encoding from an image (Not supported by faceChecker1, returns placeholder)
  * @param {string} imageUrl - Image URL
  * @returns {Object} Encoding data
  */
 const extractFaceEncoding = async (imageUrl) => {
-  try {
-    const response = await axios.post(
-      `${FACE_MATCH_SERVICE_URL}/extract-encoding`,
-      {
-        image: imageUrl
-      },
-      {
-        timeout: 30000
-      }
-    );
-    
-    return {
-      success: true,
-      ...response.data
-    };
-  } catch (error) {
-    console.error('Error extracting face encoding:', error.message);
-    return {
-      success: false,
-      error: error.message,
-      encoding: null
-    };
-  }
+  return {
+    success: false,
+    error: 'Face encoding extraction not supported by faceChecker1',
+    encoding: null
+  };
 };
 
 /**

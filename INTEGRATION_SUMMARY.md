@@ -2,20 +2,16 @@
 
 ## What Was Created
 
-### 1. Python Face Matching Service
-**Location:** `E:\latest\Ali_Raza_Backup\Work\Fyp\Backend\face-matching-service\`
+### 1. Using Existing faceChecker1 Service
+**Location:** `E:\latest\Ali_Raza_Backup\Work\Fyp\8th Semester\faceChecker1\`
 
-**Files:**
-- `face_match_api.py` - Flask API for face matching
-- `requirements.txt` - Python dependencies
-- `README.md` - Service documentation
+**Main File:** `face_match_server.py`
+- Flask API for face matching
+- Uses `face_recognition` library
+- Compares two uploaded images via `/face_match` endpoint
+- Returns boolean match result
 
-**Features:**
-- Health check endpoint
-- Compare two faces
-- Compare one face against multiple faces
-- Extract face encodings
-- Returns confidence scores and match results
+**Note:** We're using your existing faceChecker1 backend, not creating a new one!
 
 ### 2. Node.js Integration Layer
 **Location:** `E:\latest\Ali_Raza_Backup\Work\Fyp\Backend\locate-lost-backend\src\`
@@ -115,13 +111,11 @@ E:\latest\Ali_Raza_Backup\Work\Fyp\Backend\start-services.bat
 
 ### Option 2: Manual Start
 
-**Terminal 1 - Python Service:**
+**Terminal 1 - faceChecker1 Service:**
 ```bash
-cd E:\latest\Ali_Raza_Backup\Work\Fyp\Backend\face-matching-service
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python face_match_api.py
+cd "E:\latest\Ali_Raza_Backup\Work\Fyp\8th Semester\faceChecker1"
+.venv\Scripts\activate
+python face_match_server.py
 ```
 
 **Terminal 2 - Node.js Backend:**

@@ -32,6 +32,7 @@
     "express-rate-limit": "^6.10.0",
     "express-validator": "^7.0.1",
     "firebase-admin": "^11.10.1",
+    "form-data": "^4.0.4",
     "helmet": "^7.0.0",
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.2",

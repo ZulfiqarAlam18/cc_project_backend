@@ -28,18 +28,18 @@ async function testServices() {
 
   // Test 1: Check Python Service Health
   try {
-    log.info('Test 1: Checking Python Face Matching Service...');
-    const response = await axios.get(`${PYTHON_SERVICE_URL}/health`, { timeout: 5000 });
-    if (response.data.status === 'healthy') {
-      log.success('Python service is running');
+    log.info('Test 1: Checking Python Face Matching Service (faceChecker1)...');
+    const response = await axios.get(`${PYTHON_SERVICE_URL}/`, { timeout: 5000 });
+    if (response.status === 200) {
+      log.success('Python service (faceChecker1) is running');
     } else {
       log.error('Python service returned unexpected response');
       allTestsPassed = false;
     }
   } catch (error) {
-    log.error(`Python service is not accessible: ${error.message}`);
+    log.error(`Python service (faceChecker1) is not accessible: ${error.message}`);
     log.warn('Make sure to start the Python service first!');
-    log.warn('Run: cd face-matching-service && venv\\Scripts\\activate && python face_match_api.py');
+    log.warn('Run: cd "8th Semester\\faceChecker1" && .venv\\Scripts\\activate && python face_match_server.py');
     allTestsPassed = false;
   }
 
@@ -77,30 +77,11 @@ async function testServices() {
 
   // Test 4: Test Face Comparison (requires sample images)
   try {
-    log.info('Test 4: Testing face comparison with sample images...');
-    // Using publicly available sample images for testing
-    const testImage1 = 'https://raw.githubusercontent.com/ageitgey/face_recognition/master/examples/obama.jpg';
-    const testImage2 = 'https://raw.githubusercontent.com/ageitgey/face_recognition/master/examples/obama2.jpg';
-    
-    const response = await axios.post(
-      `${PYTHON_SERVICE_URL}/compare-faces`,
-      {
-        image1: testImage1,
-        image2: testImage2,
-        tolerance: 0.6
-      },
-      { timeout: 30000 }
-    );
-    
-    if (response.data.match !== undefined) {
-      log.success(`Face comparison working! Match: ${response.data.match}, Confidence: ${response.data.confidence}%`);
-    } else {
-      log.error('Face comparison returned unexpected response');
-      allTestsPassed = false;
-    }
+    log.info('Test 4: Testing face comparison with faceChecker1...');
+    log.warn('Skipping direct Python service test - faceChecker1 requires file uploads, not URLs');
+    log.info('Face comparison will be tested through Node.js backend instead');
   } catch (error) {
     log.warn(`Could not test face comparison: ${error.message}`);
-    log.info('This is optional - requires internet connection');
   }
 
   // Summary
