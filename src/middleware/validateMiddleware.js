@@ -27,7 +27,7 @@ const updateProfileSchema = Joi.object({
 });
 
 // Change password validation schema
-const chanupdateProfileSchemagePasswordSchema = Joi.object({
+const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().required(),
   newPassword: Joi.string().min(8).max(128).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/).required()
 });
@@ -48,40 +48,66 @@ const updateUserSchema = Joi.object({
   isVerified: Joi.boolean().optional()
 });
 
+// Update parent report validation schema
+const updateParentReportSchema = Joi.object({
+  childName: Joi.string().min(2).max(50).optional().trim(),
+  fatherName: Joi.string().min(2).max(50).optional().trim(),
+  gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional().uppercase(),
+  placeLost: Joi.string().min(2).max(200).optional().trim().allow(null),
+  lostTime: Joi.date().iso().max('now').optional(),
+  additionalDetails: Joi.string().max(1000).optional().trim().allow(null),
+  contactNumber: Joi.string().pattern(/^(\+92|0)?[0-9]{10,11}$/).optional().trim(),
+  emergency: Joi.string().pattern(/^(\+92|0)?[0-9]{10,11}$/).optional().trim(),
+  status: Joi.string().valid('ACTIVE', 'CLOSED', 'RESOLVED', 'CANCELLED').optional().uppercase(),
+  latitude: Joi.number().min(-90).max(90).optional(),
+  longitude: Joi.number().min(-180).max(180).optional(),
+  locationName: Joi.string().max(100).optional().trim().allow(null)
+});
+
+// Update finder report validation schema
+const updateFinderReportSchema = Joi.object({
+  childName: Joi.string().min(2).max(50).optional().trim().allow(null),
+  fatherName: Joi.string().min(2).max(50).optional().trim().allow(null),
+  gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional().uppercase().allow(null),
+  placeFound: Joi.string().min(2).max(200).optional().trim().allow(null),
+  foundTime: Joi.date().iso().max('now').optional(),
+  additionalDetails: Joi.string().max(1000).optional().trim().allow(null),
+  contactNumber: Joi.string().pattern(/^(\+92|0)?[0-9]{10,11}$/).optional().trim().allow(null),
+  emergency: Joi.string().pattern(/^(\+92|0)?[0-9]{10,11}$/).optional().trim().allow(null),
+  status: Joi.string().valid('ACTIVE', 'CLOSED', 'RESOLVED', 'CANCELLED').optional().uppercase(),
+  latitude: Joi.number().min(-90).max(90).optional(),
+  longitude: Joi.number().min(-180).max(180).optional(),
+  locationName: Joi.string().max(100).optional().trim().allow(null)
+});
+
 // Parent report validation schema
 const parentReportSchema = Joi.object({
   childName: Joi.string().min(2).max(50).required().trim(),
-  age: Joi.number().integer().min(0).max(18).required(),
+  fatherName: Joi.string().min(2).max(50).required().trim(),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').required().uppercase(),
-  placeLost: Joi.string().min(5).max(200).required().trim(),
+  placeLost: Joi.string().min(2).max(200).optional().trim().allow(null),
   lostTime: Joi.date().iso().max('now').required(),
-  clothes: Joi.string().max(500).optional().trim(),
-  additionalDetails: Joi.string().max(1000).optional().trim(),
+  additionalDetails: Joi.string().max(1000).optional().trim().allow(null),
+  contactNumber: Joi.string().pattern(/^(\+92|0)?[0-9]{10,11}$/).required().trim(),
+  emergency: Joi.string().pattern(/^(\+92|0)?[0-9]{10,11}$/).required().trim(),
   latitude: Joi.number().min(-90).max(90).optional(),
   longitude: Joi.number().min(-180).max(180).optional(),
-  locationName: Joi.string().max(100).optional().trim()
+  locationName: Joi.string().max(100).optional().trim().allow(null)
 });
 
 // Finder report validation schema
 const finderReportSchema = Joi.object({
-  childName: Joi.string().min(2).max(50).optional().trim(),
-  age: Joi.number().integer().min(0).max(18).optional(),
-  gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional().uppercase(),
-  placeFound: Joi.string().min(5).max(200).required().trim(),
-  foundTime: Joi.date().iso().max('now').required(),
-  state: Joi.string().valid('ALIVE', 'INJURED', 'DEAD', 'UNKNOWN').required().uppercase(),
-  clothes: Joi.string().max(500).optional().trim(),
-  additionalDetails: Joi.string().max(1000).optional().trim(),
+  childName: Joi.string().min(2).max(50).optional().trim().allow(null),
+  fatherName: Joi.string().min(2).max(50).optional().trim().allow(null),
+  gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional().uppercase().allow(null),
+  placeFound: Joi.string().min(2).max(200).optional().trim().allow(null),
+  foundTime: Joi.date().iso().max('now').optional(),
+  additionalDetails: Joi.string().max(1000).optional().trim().allow(null),
+  contactNumber: Joi.string().pattern(/^(\+92|0)?[0-9]{10,11}$/).optional().trim().allow(null),
+  emergency: Joi.string().pattern(/^(\+92|0)?[0-9]{10,11}$/).optional().trim().allow(null),
   latitude: Joi.number().min(-90).max(90).optional(),
   longitude: Joi.number().min(-180).max(180).optional(),
-  locationName: Joi.string().max(100).optional().trim(),
-  // For backward compatibility with your current request format
-  description: Joi.string().max(500).optional().trim(),
-  estimatedAge: Joi.number().integer().min(0).max(18).optional(),
-  clothingDescription: Joi.string().max(500).optional().trim(),
-  physicalDescription: Joi.string().max(500).optional().trim(),
-  contactInfo: Joi.string().max(200).optional().trim(),
-  additionalInfo: Joi.string().max(1000).optional().trim()
+  locationName: Joi.string().max(100).optional().trim().allow(null)
 });
 
 // Validation middleware functions
@@ -121,6 +147,14 @@ const validateUpdateUser = (data) => {
   return updateUserSchema.validate(data, { abortEarly: false });
 };
 
+const validateUpdateParentReport = (data) => {
+  return updateParentReportSchema.validate(data, { abortEarly: false });
+};
+
+const validateUpdateFinderReport = (data) => {
+  return updateFinderReportSchema.validate(data, { abortEarly: false });
+};
+
 // Express middleware wrapper
 const createValidationMiddleware = (validationFunction) => {
   return (req, res, next) => {
@@ -149,6 +183,8 @@ module.exports = {
   validateChangePassword,
   validateDeleteAccount,
   validateUpdateUser,
+  validateUpdateParentReport,
+  validateUpdateFinderReport,
   signupValidation: createValidationMiddleware(validateSignup),
   loginValidation: createValidationMiddleware(validateLogin),
   resetPasswordValidation: createValidationMiddleware(validateResetPassword),
@@ -157,5 +193,7 @@ module.exports = {
   updateProfileValidation: createValidationMiddleware(validateUpdateProfile),
   changePasswordValidation: createValidationMiddleware(validateChangePassword),
   deleteAccountValidation: createValidationMiddleware(validateDeleteAccount),
-  updateUserValidation: createValidationMiddleware(validateUpdateUser)
+  updateUserValidation: createValidationMiddleware(validateUpdateUser),
+  updateParentReportValidation: createValidationMiddleware(validateUpdateParentReport),
+  updateFinderReportValidation: createValidationMiddleware(validateUpdateFinderReport)
 };

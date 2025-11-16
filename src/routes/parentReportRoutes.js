@@ -10,7 +10,8 @@ const {
 const { authenticateToken, authorizeRoles, checkResourceOwnership } = require('../middleware/authMiddleware');
 const { uploadMultiple } = require('../middleware/uploadMiddleware');
 const {
-  parentReportValidation
+  parentReportValidation,
+  updateParentReportValidation
 } = require('../middleware/validateMiddleware');
 
 const router = express.Router();
@@ -47,7 +48,7 @@ router.get('/:reportId', authenticateToken, getParentReportById);
 router.put(
   '/:reportId',
   authenticateToken,
-  
+  updateParentReportValidation,
   updateParentReport
 );
 

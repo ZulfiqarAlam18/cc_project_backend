@@ -10,7 +10,8 @@ const {
 const { authenticateToken, authorizeRoles, checkResourceOwnership } = require('../middleware/authMiddleware');
 const { uploadMultiple } = require('../middleware/uploadMiddleware');
 const {
-  finderReportValidation
+  finderReportValidation,
+  updateFinderReportValidation
 } = require('../middleware/validateMiddleware');
 
 const router = express.Router();
@@ -47,6 +48,7 @@ router.get('/:reportId', authenticateToken, getFinderReportById);
 router.put(
   '/:reportId',
   authenticateToken,
+  updateFinderReportValidation,
   updateFinderReport
 );
 
