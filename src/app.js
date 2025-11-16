@@ -23,7 +23,8 @@ const parentReportRoutes = require('./routes/parentReportRoutes');
 const finderReportRoutes = require('./routes/finderReportRoutes');
 const matchRoutes = require('./routes/matchRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
-const notificationRoutes = require('./routes/notificationRoutes')
+const notificationRoutes = require('./routes/notificationRoutes');
+const faceMatchRoutes = require('./routes/faceMatchRoutes');
 
 // Import services
 const { initializeMatchQueue } = require('./jobs/matchQueue');
@@ -105,6 +106,7 @@ app.use('/api/reports/finder', finderReportRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/face-match', faceMatchRoutes);
 
 // Setup WebSocket handlers for real-time location sharing
 setupSocketHandlers(io);
